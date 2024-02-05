@@ -108,6 +108,7 @@ def callback_esp32_bicepCurl(client, userdata, msg):
             if time.time() - true_error_time > 2:
                 print("True error detected!")
                 errorCount += 1
+                client.publish("Control", "true error")
                 true_error_time = time.time()
                 # Update baseline when movement is detected
                 baseline_data = current_data
@@ -139,6 +140,7 @@ def callback_esp32_Pushup(client, userdata, msg):
             print("Movement detected")
             if time.time() - true_error_time > 2:
                 print("True error detected!")
+                client.publish("Control", "true error")
                 errorCount += 1
                 true_error_time = time.time()
                 # Update baseline when movement is detected
@@ -173,6 +175,7 @@ def callback_esp32_Squat(client, userdata, msg):
             print("Movement detected")
             if time.time() - true_error_time > 2:
                 print("True error detected!")
+                client.publish("Control", "true error")
                 errorCount += 1
                 true_error_time = time.time()
                 # Update baseline when movement is detected

@@ -27,22 +27,32 @@ class BicepCurlApp:
         self.canvas.pack()
 
         # Create a frame as a container for the labels
-        frame = ctk.CTkFrame(app, fg_color= "green")
-        frame.pack()
+        self.frame = ctk.CTkFrame(app, fg_color= "green")
+        self.frame.pack()
+        if(exercise_flag == 1 or exercise_flag == 2 or exercise_flag == 3 or exercise_flag == 4):
+            # Create and style the labels
+            self.lbl_rep = ctk.CTkLabel(master=self.frame, text="Rep Count: 0", text_color = "black", font=("Arial", 50), padx=10, pady=5)
+            self.lbl_rep.pack()
 
-        # Create and style the labels
-        lbl_rep = ctk.CTkLabel(master=frame, text="Rep Count: 0", text_color = "black", font=("Arial", 50), padx=10, pady=5)
-        lbl_rep.pack()
+            self.lbl_error = ctk.CTkLabel(self.frame, text="Error Count: 0", text_color = "black",font=("Arial", 50), padx=10, pady=5)
+            self.lbl_error.pack()
 
-        lbl_error = ctk.CTkLabel(frame, text="Error Count: 0", text_color = "black",font=("Arial", 50), padx=10, pady=5)
-        lbl_error.pack()
+            self.lbl_time = ctk.CTkLabel(self.frame, text="Time Elapsed: 0 seconds", text_color = "black",  font=("Arial", 50), padx=10, pady=5)
+            self.lbl_time.pack()
+        if (exercise_flag == 5):
+            self.lbl_goodtime = ctk.CTkLabel(self.frame, text="Time with Proper Form: 0 seconds", text_color = "black",  font=("Arial", 50), padx=10, pady=5)
+            self.lbl_goodtime.pack()
 
-        lbl_time = ctk.CTkLabel(frame, text="Time Elapsed: 0 seconds", text_color = "black", font=("Arial", 50), padx=10, pady=5)
-        lbl_time.pack()
+            self.lbl_badtime = ctk.CTkLabel(self.frame, text="Time without Proper Form: 0 seconds", text_color = "black",  font=("Arial", 50), padx=10, pady=5)
+            self.lbl_badtime.pack()
+        # Event to signal when the workout is complete
+        self.workout_complete_event = threading.Event()
 
         self.update_frame()
 
     def update_frame(self):
+        if self.workout_complete_event.is_set():
+            self.app.quit()  # Terminate the main loop
         # Read a frame from the video capture
         ret, frame = self.cap.read()
         if ret:
@@ -61,7 +71,17 @@ class BicepCurlApp:
 
             # Keep a reference to the image to prevent it from being garbage collected
             self.canvas.img = img_tk
+        # Find time the code has been running
+        elapsed = time.time() - code_start
+        # Update the labels
+        if(exercise_flag == 1 or exercise_flag == 2 or exercise_flag == 3 or exercise_flag == 4):
+            self.lbl_rep.configure(text=f"Rep Count: {reps}")
+            self.lbl_error.configure(text=f"Error Count: {errors}")
+            self.lbl_time.configure(text=f"Time Elapsed: {elapsed}")
 
+        else:
+            self.lbl_goodtime.configure(text=f"Time with Proper Form: {good_time}")
+            self.lbl_badtime.configure(text=f"Time without Proper Form: {bad_time}")
         # Schedule the next frame update after a delay (in milliseconds)
         self.app.after(10, self.update_frame)
 
@@ -69,8 +89,8 @@ class BicepCurlApp:
         # Start the GUI main loop
         self.app.mainloop()
 
-def my_code():
-    global prev_joint_positions, smoothing_factor, calibration_pabove_values, calibration_period, reps, errCounterX, errCounterY, errPause, cooldown_period,  calibration_joint_values_x,calibration_joint_values_y, desiredJoint,  Joint_x, Joint_y, Shoulder_x, Shoulder_y,hip_x,hip_y, pTime
+def my_code(workout_complete_event):
+    global good_time, bad_time, errors, prev_joint_positions, smoothing_factor, calibration_pabove_values, calibration_period, reps, errCounterX, errCounterY, errPause, cooldown_period,  calibration_joint_values_x,calibration_joint_values_y, desiredJoint,  Joint_x, Joint_y, Shoulder_x, Shoulder_y,hip_x,hip_y, pTime
     if(exercise_flag == 1):
         # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
         cooldown_start_time = time.time()
@@ -84,6 +104,7 @@ def my_code():
             if counter >= 30:
                 client.publish("Control", "Workout Complete!")
                 sleep(1)
+                workout_complete_event.set()
                 break
             if reps >= 10 and counter == 0:
                 breakflag = True
@@ -217,7 +238,7 @@ def my_code():
             
             resized_img = cv2.resize(img, (1300, 700))
             # Display the combined image with transparency
-            cv2.imshow("frame", resized_img)
+            #cv2.imshow("frame", resized_img)
 
             cv2.waitKey(1)
             if breakflag:
@@ -351,7 +372,7 @@ def my_code():
             
             resized_img = cv2.resize(img, (1300, 700))
             # Display the combined image with transparency
-            cv2.imshow("frame", resized_img)
+            #cv2.imshow("frame", resized_img)
 
             cv2.waitKey(1)
             if breakflag:
@@ -486,7 +507,7 @@ def my_code():
             
             resized_img = cv2.resize(img, (1300, 700))
             # Display the combined image with transparency
-            cv2.imshow("frame", resized_img)
+            #cv2.imshow("frame", resized_img)
 
             cv2.waitKey(1)
             if breakflag:
@@ -597,7 +618,7 @@ def my_code():
 
             # Display
             resized_img = cv2.resize(img, (1300, 700))
-            cv2.imshow('MediaPipe Pose', resized_img)
+            #cv2.imshow('MediaPipe Pose', resized_img)
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 break
 
@@ -615,7 +636,6 @@ def my_code():
         yellow = (0, 255, 255)
         pink = (255, 0, 255)
         good_frames = 0
-        good_time = 0
         bad_frames = 0
         fps = 0
         
@@ -717,11 +737,14 @@ def my_code():
                 good_time = (1 / fps) * good_frames
                 bad_time =  (1 / fps) * bad_frames
 
+                good_time = round(good_time, 1)
+                bad_time = round(bad_time, 1)
+
             # Pose time.
             if good_time > 0:
-                time_string_good = 'Proper Plank time : ' + str(round(good_time, 1)) + 's'
+                time_string_good = 'Proper Plank time : ' + str(good_time) + 's'
                 cv2.putText(img, time_string_good, (10, h-20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, green, 2)
-                time_string_bad = 'Bad Plank Time : ' + str(round(bad_time, 1)) + 's'
+                time_string_bad = 'Bad Plank Time : ' + str(bad_time) + 's'
                 cv2.putText(img, time_string_bad, (10, h - 50), cv2.FONT_HERSHEY_SIMPLEX,  0.9, red, 2)
 
             # Display
@@ -761,6 +784,7 @@ reps = 0
 errCounterX = 0
 errCounterY = 0
 errPause = 0
+errors = 0
 # Cooldown start values for counting reps
 cooldown_period = 4  # Cooldown period (in seconds)
 # Init lists to store desired joint positional values during calibration
@@ -775,6 +799,9 @@ Shoulder_y = 0
 hip_x = 0
 hip_y = 0
 
+good_time = 0
+bad_time = 0
+
 ## MQTT functionality
 # MQTT callback functions
 def on_connect(client, userdata, flags, rc):
@@ -786,6 +813,20 @@ def on_disconnect(client, userdata, rc):
    global flag_connected
    flag_connected = 0
    print("Disconnected from MQTT server")
+
+def user_callback(client, userdata, msg):
+    # When we recieve the notification that the bottom of the pushup is reached
+    # Ask esp32 callback to look for no movement for one second
+    global errors
+    converted_msg = str(msg.payload.decode('utf-8'))
+    print('OpenCV message: ', converted_msg)
+    if converted_msg == "true error":
+        errors += 1
+
+def mqtt_thread():
+    # MQTT subscription and message processing logic here
+    client.subscribe("Control")
+    client.message_callback_add('Control', user_callback)
 
 
 client = mqtt.Client("openCV client") # this should be a unique name
@@ -883,12 +924,17 @@ while not listen_for_start_command():
     pass
 
 if __name__ == "__main__":
+    code_start = time.time()
     app = ctk.CTk()
     bicep_curl_app = BicepCurlApp(app)
 
     # Create a new thread for running your additional code
-    code_thread = threading.Thread(target=my_code)
+    code_thread = threading.Thread(target=my_code, args=(bicep_curl_app.workout_complete_event,))
     code_thread.start()
+
+    # Create a new thread for MQTT
+    mqtt_thread = threading.Thread(target=mqtt_thread)
+    mqtt_thread.start()
 
     # Run the GUI main loop
     bicep_curl_app.run()
