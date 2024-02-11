@@ -920,7 +920,7 @@ client.loop_start()
 print("......client setup complete............")
 
 ## Speech Recognition
-exercise_flag = 5
+exercise_flag = 0
 
 def ask_Exercise():
     global exercise_flag
@@ -994,13 +994,13 @@ def findAngle(x1, y1, x2, y2):
     theta = math.acos((y2 - y1) * (-y1) / (math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * y1))
     degree = int(180 / math.pi) * theta
     return degree
-## These will continualy prompt the user until they pass the prompts
-# # Ask for excercise
-# while not ask_Exercise():
-#     pass
-# # Ask for prompt to start the execerise program
-# while not listen_for_start_command():
-#     pass
+# These will continualy prompt the user until they pass the prompts
+# Ask for excercise
+while not ask_Exercise():
+    pass
+# Ask for prompt to start the execerise program
+while not listen_for_start_command():
+    pass
 
 if __name__ == "__main__":
     code_start = time.time()
