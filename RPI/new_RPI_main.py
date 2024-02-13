@@ -65,7 +65,7 @@ def is_movement_detected_pushup(current_data, baseline_data):
     global pushup_Pause
     # Compare current data with baseline data to detect movement
     average_differences = abs(current_data - baseline_data)
-    threshold = 15 
+    threshold = 8 
     if (average_differences > threshold):
         if (time.time() - error_time < 1.5) and (time.time() - error_time > 0.5):
             pushup_Pause = False
