@@ -8,21 +8,19 @@ This folder holds the entire necessary code base to have an esp32 successfully r
 
 The arduino-BerryIMU.ino is what actually gets uploaded to the esp32 through the arduino IDE. This code was edited heavily to allow for functionality on the ESP32, as it was originally deisgned for something heavier duty like an arduino uno board.
 
-If you are using our PCB, you must change the imu.cpp file. Please comment out the core of the detectIMU() function. The only thing you should leave in this function are the below two lines.
-
-`BerryIMUversion = 3;`
-
-`delay(1000);`
+It is updated to function specifically on our custom PCB.
 
 **Laptop**
 
-This folder holds the code running from your laptop. As of right now this is only the skeleton code.
+This folder holds the code running from your laptop.
+
+The code to be run within this folder is the test3.py
 
 **RPI**
 
 This folder holds things necessary for your RPI. 
 
-The sub_IMU_handler.py is the main script for this folder. The client_sub_csv.py is a simple script that allows you to send the recieved data into a CSV file conviently to analyze some data if necessary.
+The new_IMU_handler.py is the main script for this folder. The client_sub_csv.py is a simple script that allows you to send the recieved data into a CSV file conviently to analyze some data if necessary.
 
 The data folder holds a few csvs for the type of data we recieve from the IMU.
 
