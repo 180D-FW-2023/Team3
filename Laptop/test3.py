@@ -95,7 +95,8 @@ class BicepCurlApp:
 
     def update_frame(self):
         if self.workout_complete_event.is_set():
-            self.app.quit()  # Terminate the main loop
+            pass
+            #self.app.quit()  # Terminate the main loop
         # Read a frame from the video capture
         ret, frame = self.capture.read()
         if ret:
@@ -325,6 +326,7 @@ def my_code(workout_complete_event):
             if counter >= 31:
                 client.publish("Control", "Workout Complete!")
                 sleep(1)
+                workout_complete_event.set()
                 break
             if reps >= 10 and counter == 1:
                 breakflag = True
@@ -424,6 +426,7 @@ def my_code(workout_complete_event):
             if counter >= 31:
                 client.publish("Control", "Workout Complete!")
                 sleep(1)
+                workout_complete_event.set()
                 break
             if reps >= 10 and counter == 1:
                 breakflag = True
@@ -512,11 +515,12 @@ def my_code(workout_complete_event):
         # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
         cooldown_start_time = time.time()
         calibration_start_time = time.time()
+        errortime = time.time()
         # This is variables to stop processing
         breakflag = False
         counter = 0
         # variables for the line
-        angle_deg = 15
+        angle_deg = 40
         angle_rad = math.radians(angle_deg)
         line_len = 700
         # This is your actual processing code
@@ -527,6 +531,7 @@ def my_code(workout_complete_event):
             if counter >= 31:
                 client.publish("Control", "Workout Complete!")
                 sleep(1)
+                workout_complete_event.set()
                 break
             if reps >= 10 and counter == 1:
                 breakflag = True
@@ -547,23 +552,17 @@ def my_code(workout_complete_event):
             lmPose = mpPose.PoseLandmark
             h, w, c = img.shape
 
-            # Right shoulder
-            r_shldr_x = int(lm.landmark[lmPose.RIGHT_SHOULDER].x * w)
-            r_shldr_y = int(lm.landmark[lmPose.RIGHT_SHOULDER].y * h)
-            # right ear
-            r_ear_x = int(lm.landmark[lmPose.RIGHT_EAR].x * w)
-            r_ear_y = int(lm.landmark[lmPose.RIGHT_EAR].y * h)
             # right hip
-            r_hip_x = int(lm.landmark[lmPose.RIGHT_HIP].x * w)
-            r_hip_y = int(lm.landmark[lmPose.RIGHT_HIP].y * h)
+            l_hip_x = int(lm.landmark[lmPose.LEFT_HIP].x * w)
+            l_hip_y = int(lm.landmark[lmPose.LEFT_HIP].y * h)
             # Right knee
-            r_knee_x = int(lm.landmark[lmPose.RIGHT_KNEE].x * w)
-            r_knee_y = int(lm.landmark[lmPose.RIGHT_KNEE].y * h)
+            l_knee_x = int(lm.landmark[lmPose.LEFT_KNEE].x * w)
+            l_knee_y = int(lm.landmark[lmPose.LEFT_KNEE].y * h)
 
-            r_ankle_x = int(lm.landmark[lmPose.RIGHT_ANKLE].x * w)
-            r_ankle_y = int(lm.landmark[lmPose.RIGHT_ANKLE].y * h)
+            l_ankle_x = int(lm.landmark[lmPose.LEFT_ANKLE].x * w)
+            l_ankle_y = int(lm.landmark[lmPose.LEFT_ANKLE].y * h)
             
-            joints = [(r_shldr_x, r_shldr_y), (r_ear_x, r_ear_y), (r_hip_x, r_hip_y), (r_knee_x, r_knee_y), (r_ankle_x, r_ankle_y)]
+            joints = [(l_hip_x, l_hip_y), (l_knee_x, l_knee_y), (l_ankle_x, l_ankle_y)]
             # Apply smoothing to the joint positions
             for joint, (joint_x, joint_y) in enumerate(joints):
                 if len(prev_joint_positions) > 0:
@@ -578,10 +577,10 @@ def my_code(workout_complete_event):
             # set for the next frame
             prev_joint_positions = current_joint_positions
 
-            cv2.circle(img, (r_shldr_x, r_shldr_y), 7, yellow, -1)
-            cv2.circle(img, (r_ear_x, r_ear_y), 7, yellow, -1)
-            cv2.circle(img, (r_hip_x, r_hip_y), 7, yellow, -1)
-            cv2.circle(img, (r_knee_x, r_knee_y), 7, yellow, -1)
+            
+            cv2.circle(img, (l_hip_x, l_hip_y), 7, yellow, -1)
+            cv2.circle(img, (l_knee_x, l_knee_y), 7, yellow, -1)
+            cv2.circle(img, (l_ankle_x, l_ankle_y), 7, yellow, -1)
             
             for joint_position in (current_joint_positions):
                 joint_x, joint_y = joint_position
@@ -590,27 +589,34 @@ def my_code(workout_complete_event):
 
             # During calibration period
             if (time.time() - calibration_start_time < 3):
-                if r_hip_x != 0:
-                    calibration_joint_values_x.append(r_hip_x)
-                    calibration_joint_values_y.append(r_hip_y)
+                if l_hip_x != 0:
+                    calibration_joint_values_x.append(l_hip_x)
+                    calibration_joint_values_y.append(l_hip_y)
             # Not calibration period
             else:
                 calibrated_hip_x = np.mean(calibration_joint_values_x)
                 calibrated_hip_y = np.mean(calibration_joint_values_y)
-                end_x = int(calibrated_hip_x + line_len * math.cos(angle_rad))
-                end_y = int(calibrated_hip_y - line_len * math.sin(angle_deg))
+                end_x = int(calibrated_hip_x - line_len * math.cos(angle_rad))
+                end_y = int(calibrated_hip_y - line_len * math.sin(angle_rad))
                 cv2.line(img, (int(calibrated_hip_x), int(calibrated_hip_y)), (end_x, end_y), red, 2)
-                y_line_at_point = calibrated_hip_y + int((r_knee_x - calibrated_hip_x) * math.tan(angle_rad))
-                knee_inclination = findAngle(r_knee_x, r_knee_y, r_hip_x, r_hip_y)
-                ankle_inclination = findAngle(r_knee_x, r_knee_y, r_ankle_x, r_ankle_y)
+                y_line_at_point = calibrated_hip_y + int((l_knee_x - calibrated_hip_x) * math.tan(angle_rad))
+                knee_inclination = findAngle(l_knee_x, l_knee_y, l_hip_x, l_hip_y)
+                ankle_inclination = findAngle(l_knee_x, l_knee_y, l_ankle_x, l_ankle_y)
 
+                if time.time() - cooldown_start_time > 1.5:
+                        Pause = False
                 # Count reps
                 if time.time() - cooldown_start_time > 4: # only one rep per 4 seconds
-                    if r_knee_y < y_line_at_point:
+                    if l_knee_y < y_line_at_point:
                         reps += 1
+                        Pause = True
                         cooldown_start_time = time.time()
-                        if np.abs(knee_inclination - ankle_inclination) > 10:
+                if Pause == True:
+                    if l_knee_y > y_line_at_point:
+                        if time.time() - errortime > 1.5:
                             errors += 1
+                            errortime = time.time()
+                        
 
 
             # Display
@@ -640,11 +646,13 @@ def my_code(workout_complete_event):
         # This is your actual processing code
         while True:
             if good_time > 60:
+                sleep(1)
+                workout_complete_event.set()
                 break
             
             # Read frame
             success, img = cap.read()
-
+            fps = cap.get(cv2.CAP_PROP_FPS)
             # rgb for skeleton
             imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             results = pose.process(imgRGB)
@@ -749,9 +757,9 @@ def my_code(workout_complete_event):
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 break
 
-            cTime = time.time()
-            fps = 1 / (cTime - pTime)
-            pTime = cTime
+            # cTime = time.time()
+            # fps = 1 / (cTime - pTime)
+            # pTime = cTime
 
 
     cap.release()
