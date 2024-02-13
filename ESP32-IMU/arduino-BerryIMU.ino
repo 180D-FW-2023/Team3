@@ -13,15 +13,21 @@
 
 */
 #include <WiFi.h>
+//#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include "IMU.h"
 #include <Wire.h>
 #define DT  0.02          // Loop time
 #define G_GAIN 0.070    // [deg/s/LSB]
 
+//const char* ssid = "Turner";
+//const char* password = "bruhcome";
 const char* ssid = "G.M.W.W.";
 const char* password = "margotrobbie123";
-
+//const char *ssid = "Jeeps";
+//const char *username = "juanperez13@ucla.edu";
+//const char *password = "Nauj2002%";
+////
 byte buff[6];
 int accRaw[3];
 float AccYangle = 0.0;
@@ -36,9 +42,11 @@ unsigned long startTime;
 
 // Replace your MQTT Broker IP address here:
 const char* mqtt_server = "192.168.99.113";
+//const char* mqtt_server = "131.179.39.180";
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+
+WiFiClient espPCBClient;
+PubSubClient client(espPCBClient);
 
 long lastMsg = 0;
 char msg[50];
@@ -62,6 +70,18 @@ void setup() {
 }
 void setup_wifi() {
   delay(10);
+//  Serial.print("Connecting to WiFi");
+//
+//  WiFiClientSecure wifiClient;
+//
+//  wifiClient.setCACert(nullptr);  // Do not verify server certificate
+//
+//  if (!wifiClient.connect(ssid, 0, username, password)) {
+//    Serial.println("Connection failed.");
+//    return;
+//  }
+//
+//  Serial.println("Connected to WiFi");
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
@@ -93,7 +113,7 @@ void connect_mqttServer() {
         //now attemt to connect to MQTT server
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
-        if (client.connect("ESP32_client")) { // Change the name of client here if multiple ESP32 are connected
+        if (client.connect("ESP32PCB_Client")) { // Change the name of client here if multiple ESP32 are connected
           //attempt successful
           Serial.println("connected");
           // Subscribe to topics here
@@ -189,7 +209,6 @@ void loop() {
   if (now - lastMsg > 100) {
     lastMsg = now;
     client.publish("esp32/sensor1", imuData.c_str()); //topic name (to which this ESP32 publishes its data). 88 is the dummy value.
-    
   }
 
 }

@@ -43,69 +43,69 @@ void readFrom(int device, byte address, int num, byte buff[]) {
 
 
 void detectIMU(){
-  Serial.println("detecting IMU...");
-  //Detect which version of BerryIMU is connected using the 'who am i' register
-  //BerryIMUv1 uses the LSM9DS0
-  //BerryIMUv2 uses the LSM9DS1
-  //BerryIMUv3 uses the LSM6DSL and LIS3MDL
-
-  Serial.println("makes it past wire start IMU...");
-  byte LSM9DS0_WHO_AM_I_G_response;
-  byte LSM9DS0_WHO_AM_I_XM_response;
-  byte LSM9DS1_WHO_M_response;
-  byte LSM9DS1_WHO_XG_response;
-  byte LSM6DSL_WHO_AM_I_response;
-  byte LIS3MDL_WHO_AM_I_response;
-
-  
-  byte WHOresponse[2];
-
-  //Detect if BerryIMUv1 (Which uses a LSM9DS0) is connected
-  //
-  //Detect if BerryIMUv1 (Which uses a LSM9DS0) is connected
-  readFrom(LSM9DS0_GYR_ADDRESS, LSM9DS0_WHO_AM_I_G,1,WHOresponse);
-  LSM9DS0_WHO_AM_I_G_response = WHOresponse[0];
-  
-  readFrom(LSM9DS0_ACC_ADDRESS, LSM9DS0_WHO_AM_I_XM,1,WHOresponse);
-  LSM9DS0_WHO_AM_I_XM_response = WHOresponse[0];
-
-  if (LSM9DS0_WHO_AM_I_G_response == 0xD4 && LSM9DS0_WHO_AM_I_XM_response == 0x49){
-    Serial.println("\n\n   BerryIMUv1(LSM9DS0) found \n\n");
-    BerryIMUversion = 1;
-  }
-
-  
-  //Detect if BerryIMUv2 (Which uses a LSM9DS1) is connected
-  readFrom(LSM9DS1_MAG_ADDRESS, LSM9DS1_WHO_AM_I_M,1,WHOresponse);
-  LSM9DS1_WHO_M_response = WHOresponse[0];
-  
-  readFrom(LSM9DS1_GYR_ADDRESS, LSM9DS1_WHO_AM_I_XG,1,WHOresponse);
-  LSM9DS1_WHO_XG_response = WHOresponse[0];
-
-  if (LSM9DS1_WHO_XG_response == 0x68 && LSM9DS1_WHO_M_response == 0x3D){
-    Serial.println("\n\n   BerryIMUv2(LSM9DS1) found \n\n");
-    BerryIMUversion = 2;
- 
-    
-  }
-  //Detect if BerryIMUv3 (Which uses the LSM6DSL and LIS3MDL) is connected
-  readFrom(LSM6DSL_ADDRESS, LSM6DSL_WHO_AM_I,1,WHOresponse);
-  LSM6DSL_WHO_AM_I_response = WHOresponse[0];
-  Serial.print("LSM6DSL_WHO_AM_I_response: 0x");
-  Serial.println(LSM6DSL_WHO_AM_I_response, HEX);
-
-  
-  readFrom(LIS3MDL_ADDRESS, LIS3MDL_WHO_AM_I,1,WHOresponse);
-  LIS3MDL_WHO_AM_I_response = WHOresponse[0];
-  Serial.print("LIS3MDL_WHO_AM_I_response: 0x");
-  Serial.println(LIS3MDL_WHO_AM_I_response, HEX);
-  
-  if (LSM6DSL_WHO_AM_I_response == 0x6A && LIS3MDL_WHO_AM_I_response == 0x3D){
-    Serial.println("\n\n   BerryIMUv3(LSM6DSL & LIS3MLD) found \n\n");
-    BerryIMUversion = 3;
-    
-  }
-  
+//  Serial.println("detecting IMU...");
+//  //Detect which version of BerryIMU is connected using the 'who am i' register
+//  //BerryIMUv1 uses the LSM9DS0
+//  //BerryIMUv2 uses the LSM9DS1
+//  //BerryIMUv3 uses the LSM6DSL and LIS3MDL
+//
+//  Serial.println("makes it past wire start IMU...");
+//  byte LSM9DS0_WHO_AM_I_G_response;
+//  byte LSM9DS0_WHO_AM_I_XM_response;
+//  byte LSM9DS1_WHO_M_response;
+//  byte LSM9DS1_WHO_XG_response;
+//  byte LSM6DSL_WHO_AM_I_response;
+//  byte LIS3MDL_WHO_AM_I_response;
+//
+//  
+//  byte WHOresponse[2];
+//
+//  //Detect if BerryIMUv1 (Which uses a LSM9DS0) is connected
+//  //
+//  //Detect if BerryIMUv1 (Which uses a LSM9DS0) is connected
+//  readFrom(LSM9DS0_GYR_ADDRESS, LSM9DS0_WHO_AM_I_G,1,WHOresponse);
+//  LSM9DS0_WHO_AM_I_G_response = WHOresponse[0];
+//  
+//  readFrom(LSM9DS0_ACC_ADDRESS, LSM9DS0_WHO_AM_I_XM,1,WHOresponse);
+//  LSM9DS0_WHO_AM_I_XM_response = WHOresponse[0];
+//
+//  if (LSM9DS0_WHO_AM_I_G_response == 0xD4 && LSM9DS0_WHO_AM_I_XM_response == 0x49){
+//    Serial.println("\n\n   BerryIMUv1(LSM9DS0) found \n\n");
+//    BerryIMUversion = 1;
+//  }
+//
+//  
+//  //Detect if BerryIMUv2 (Which uses a LSM9DS1) is connected
+//  readFrom(LSM9DS1_MAG_ADDRESS, LSM9DS1_WHO_AM_I_M,1,WHOresponse);
+//  LSM9DS1_WHO_M_response = WHOresponse[0];
+//  
+//  readFrom(LSM9DS1_GYR_ADDRESS, LSM9DS1_WHO_AM_I_XG,1,WHOresponse);
+//  LSM9DS1_WHO_XG_response = WHOresponse[0];
+//
+//  if (LSM9DS1_WHO_XG_response == 0x68 && LSM9DS1_WHO_M_response == 0x3D){
+//    Serial.println("\n\n   BerryIMUv2(LSM9DS1) found \n\n");
+//    BerryIMUversion = 2;
+// 
+//    
+//  }
+//  //Detect if BerryIMUv3 (Which uses the LSM6DSL and LIS3MDL) is connected
+//  readFrom(LSM6DSL_ADDRESS, LSM6DSL_WHO_AM_I,1,WHOresponse);
+//  LSM6DSL_WHO_AM_I_response = WHOresponse[0];
+//  Serial.print("LSM6DSL_WHO_AM_I_response: 0x");
+//  Serial.println(LSM6DSL_WHO_AM_I_response, HEX);
+//
+//  
+//  readFrom(LIS3MDL_ADDRESS, LIS3MDL_WHO_AM_I,1,WHOresponse);
+//  LIS3MDL_WHO_AM_I_response = WHOresponse[0];
+//  Serial.print("LIS3MDL_WHO_AM_I_response: 0x");
+//  Serial.println(LIS3MDL_WHO_AM_I_response, HEX);
+//  
+//  if (LSM6DSL_WHO_AM_I_response == 0x6A && LIS3MDL_WHO_AM_I_response == 0x3D){
+//    Serial.println("\n\n   BerryIMUv3(LSM6DSL & LIS3MLD) found \n\n");
+//    BerryIMUversion = 3;
+//    
+//  }
+  BerryIMUversion = 3;
   delay(1000);
   
 }
