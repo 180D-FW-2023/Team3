@@ -148,17 +148,24 @@ class BicepCurlApp:
 def my_code(workout_complete_event):
     global Pause, good_time, bad_time, errors, prev_joint_positions, smoothing_factor, calibration_pabove_values, calibration_period, reps, errCounterX, errCounterY, errPause, cooldown_period,  calibration_joint_values_x,calibration_joint_values_y, desiredJoint,  Joint_x, Joint_y, Shoulder_x, Shoulder_y,hip_x,hip_y, pTime
     if(exercise_flag == 1):
+        blue = (255, 127, 0)
+        red = (50, 50, 255)
+        green = (127, 255, 0)
+        dark_blue = (127, 20, 0)
+        light_green = (127, 233, 100)
+        yellow = (0, 255, 255)
+        pink = (255, 0, 255)
         # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
         cooldown_start_time = time.time()
-        cooldown_start_time_err = time.time()
         calibration_start_time = time.time()
-
+        cooldown_start_time_err = time.time()
+        # This is variables to stop processing
         breakflag = False
         counter = 0
         # This is your actual processing code
         while True:
             if time.time()-code_start > 5 and counter == 0:
-                Pause=False
+                Pause = False
                 counter+=1
             if counter >= 31:
                 client.publish("Control", "Workout Complete!")
@@ -167,9 +174,7 @@ def my_code(workout_complete_event):
                 break
             if reps >= 10 and counter == 1:
                 breakflag = True
-            # Reset pabove for every frame
-            pabove = 0
-            
+        
             # Read frame
             success, img = cap.read()
 
@@ -177,129 +182,84 @@ def my_code(workout_complete_event):
             imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             results = pose.process(imgRGB)
 
-            # hsv masking
-            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-            lower_green = np.array([20, 100, 100])
-            upper_green = np.array([90, 255, 255])
-            mask = cv2.inRange(hsv, lower_green, upper_green)
+            # Clear previous joint positions for the new frame
+            current_joint_positions = []
+
+            # Following line is the original skeleton drawing, but we dont really need the connections drawn or the points due to later code
+        
+            lm = results.pose_landmarks
+            lmPose = mpPose.PoseLandmark
+            h, w, c = img.shape
+
+            # Right shoulder
+            r_shldr_x = int(lm.landmark[lmPose.RIGHT_SHOULDER].x * w)
+            r_shldr_y = int(lm.landmark[lmPose.RIGHT_SHOULDER].y * h)
+
+            # Right elbow
+            r_elbow_x = int(lm.landmark[lmPose.RIGHT_ELBOW].x * w)
+            r_elbow_y = int(lm.landmark[lmPose.RIGHT_ELBOW].y * h)
+
+            # Right wrist
+            r_wrist_x = int(lm.landmark[lmPose.RIGHT_WRIST].x * w)
+            r_wrist_y = int(lm.landmark[lmPose.RIGHT_WRIST].y * h)
             
-            # Create a masked image
-            masked_img = cv2.bitwise_and(img, img, mask=mask)
-
-            try:
-                # Bounding box code for masked item
-                contours, hierarchy = cv2.findContours(mask, 1, 2)
-                c = max(contours, key=cv2.contourArea)
-                x_box, y_box, w_box, h_box = cv2.boundingRect(c)
-                cv2.rectangle(img, (x_box, y_box), (x_box+w_box, y_box+h_box), (0, 255, 0), 2)
-
-                # Clear previous joint positions for the new frame
-                current_joint_positions = []
-
-                if results.pose_landmarks:
-                    # Following line is the original skeleton drawing, but we dont really need the connections drawn or the points due to later code
-                    #mpDraw.draw_landmarks(img, results.pose_landmarks, mpPose.POSE_CONNECTIONS)
-                    for id, lm in enumerate(results.pose_landmarks.landmark):
-                        h, w, c = img.shape
-                        print(id, lm)
-                        print(f"Image shape: {h} w {w}")
-                        cx, cy = int(lm.x * w), int(lm.y * h)
-
-                        # Apply smoothing to the joint positions
-                        if len(prev_joint_positions) > 0:
-                            smoothed_cx = int(smoothing_factor * cx + (1 - smoothing_factor) * prev_joint_positions[id][0])
-                            smoothed_cy = int(smoothing_factor * cy + (1 - smoothing_factor) * prev_joint_positions[id][1])
-                        else:
-                            smoothed_cx, smoothed_cy = cx, cy
-
-                        # Store the current smoothed joint positions
-                        current_joint_positions.append((smoothed_cx, smoothed_cy))
-
-                        if x_box < smoothed_cx < x_box + w_box and y_box < smoothed_cy < y_box + h_box:
-                            # Draw a circle on the smoothed joint within the bounding box in green
-                            cv2.circle(img, (smoothed_cx, smoothed_cy), 5, (0, 255, 0), cv2.FILLED)
-                            # Store desired joint since we're currently handling the desired joint if we havent alr set an id
-                            if desiredJoint == 0:
-                                desiredJoint = id
-                            # If we are currently handling our desired joint, store the x and y for calibration/later testing
-                            if desiredJoint == id:
-                                Joint_x = smoothed_cx
-                                Joint_y = smoothed_cy
-
-                        else:
-                            # Draw a circle on the smoothed joint outside the bounding box in red
-                            cv2.circle(img, (smoothed_cx, smoothed_cy), 5, (0, 0, 255), cv2.FILLED)
-                        # If a joint is above the y height of the bounding box, count it to pabove
-                        if  smoothed_cy < y_box:
-                            pabove += 1
-                            
-
-                # Update previous joint positions for the next frame
-                prev_joint_positions = current_joint_positions
-
-                ## Calibration section: As of rn its used only for rep counter
-
-                # Check if the calibration period is over
-                if time.time() - calibration_start_time < calibration_period:
-                    # During calibration, store pabove values
-                    calibration_pabove_values.append(pabove)
-                    # Find average position of desired joint (within mask) 
-                    if Joint_x != 0:
-                        calibration_joint_values_x.append(Joint_x)
-                        calibration_joint_values_y.append(Joint_y)
-
-                ## Post Calibration functionality, this will all be done after the cal is over
-
+            joints = [(r_shldr_x, r_shldr_y), (r_elbow_x, r_elbow_y), (r_wrist_x, r_wrist_y)]
+            # Apply smoothing to the joint positions
+            for joint, (joint_x, joint_y) in enumerate(joints):
+                if len(prev_joint_positions) > 0:
+                    smoothed_x = int(smoothing_factor * joint_x + (1 - smoothing_factor) * prev_joint_positions[joint][0])
+                    smoothed_y = int(smoothing_factor * joint_y + (1 - smoothing_factor) * prev_joint_positions[joint][1])
                 else:
-                    # After calibration, find the most common pabove value and store it
-                    most_common_pabove = Counter(calibration_pabove_values).most_common(1)[0][0]
-                    print(f"Most common pabove value during calibration: {most_common_pabove}")
+                    smoothed_x, smoothed_y = joint_x, joint_y
+                # Store the current smoothed joint positions
+                current_joint_positions.append((smoothed_x, smoothed_y))
 
-                    # After calibration, find the average position of the desired joint
-                    most_common_joint_x = np.mean(calibration_joint_values_x)
-                    most_common_joint_y = np.mean(calibration_joint_values_y)
-                    # Draw a box around my calibrated joint so I can visualize my movement threshold
-                    box_x = int(most_common_joint_x - 50)
-                    box_y = int(most_common_joint_y - 75)
-                    cv2.rectangle(img, (box_x, box_y), (box_x + 100, box_y + 150), (255, 255, 255), 2)
-
-                    print(f"Most common joint value during calibration_x: {most_common_joint_x}")
-                    print(f"Most common joint value during calibration_y: {most_common_joint_y}")
-                    print(f"DesiredJoint id : {desiredJoint}")
-                    # Count reps (currently only allow one rep per cooldown period length)
-                    if time.time() - cooldown_start_time > cooldown_period:
-                        if pabove > most_common_pabove:
-                            reps += 1
-                            cooldown_start_time = time.time()
-                    if time.time() - cooldown_start_time_err > cooldown_period:
-                        # Check for movement of our desired joint
-                        if (Joint_x > most_common_joint_x + 50) or (Joint_x < most_common_joint_x - 50):
-                            errCounterX += 1
-                            data_to_publish = "Error from X position"
-                            client.publish("TurnerOpenCV", data_to_publish)
-                            cooldown_start_time_err = time.time()
-                        if (Joint_y > most_common_joint_y + 75) or (Joint_y < most_common_joint_y - 75):
-                            errCounterY += 1
-                            data_to_publish = "Error from Y position"
-                            client.publish("TurnerOpenCV", data_to_publish)
-                            cooldown_start_time_err = time.time()
-
-
-            except Exception as e:
-                print("Error:", e)
-                continue
-
-            cTime = time.time()
-            fps = 1 / (cTime - pTime)
-            pTime = cTime
-
-            cv2.putText(img, f"Points above mask: {pabove} Reps: {reps} ErrorsX: {errCounterX} ErrorsY: {errCounterY}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
             
-            resized_img = cv2.resize(img, (1300, 700))
-            # Display the combined image with transparency
-            #cv2.imshow("frame", resized_img)
+            # set for the next frame
+            prev_joint_positions = current_joint_positions
+            cv2.circle(img, (r_shldr_x, r_shldr_y), 7, yellow, -1)
+            cv2.circle(img, (r_elbow_x, r_elbow_y), 7, yellow, -1)
+            cv2.circle(img, (r_wrist_x, r_wrist_y), 7, yellow, -1)
+            
+            for joint_position in (current_joint_positions):
+                joint_x, joint_y = joint_position
+                cv2.circle(img, (joint_x, joint_y), 7, blue, -1)
 
-            cv2.waitKey(1)
+
+            # During calibration period
+            if (time.time() - calibration_start_time < 3):
+                if r_elbow_y != 0:
+                    calibration_joint_values_x.append(r_elbow_x)
+                    calibration_joint_values_y.append(r_elbow_y)
+            # Not calibration period
+            else:
+                calibrated_elbow_x = np.mean(calibration_joint_values_x)
+                calibrated_elbow_y = np.mean(calibration_joint_values_y)
+                box_x = int(calibrated_elbow_x - 50)
+                box_y = int(calibrated_elbow_y - 75)
+                cv2.rectangle(img, (box_x, box_y), (box_x + 100, box_y + 150), (255, 255, 255), 2)
+                cv2.line(img, (0, int(calibrated_elbow_y) - 20), (w, int(calibrated_elbow_y) - 20), (255,0,0), 2)
+
+                if time.time() - cooldown_start_time > cooldown_period:
+                    if r_wrist_y > int(calibrated_elbow_y) - 20:
+                        reps += 1
+                        cooldown_start_time = time.time()
+                if time.time() - cooldown_start_time_err > cooldown_period:
+                    # Check for movement of our desired joint
+                    if (r_elbow_x > calibrated_elbow_x + 50) or (r_elbow_x < calibrated_elbow_x - 50):
+                        errCounterX += 1
+                        data_to_publish = "Error from X position"
+                        client.publish("TurnerOpenCV", data_to_publish)
+                        cooldown_start_time_err = time.time()
+                    if (r_elbow_y > calibrated_elbow_y + 75) or (r_elbow_y < calibrated_elbow_y - 75):
+                        errCounterY += 1
+                        data_to_publish = "Error from Y position"
+                        client.publish("TurnerOpenCV", data_to_publish)
+                        cooldown_start_time_err = time.time()
+
+            if cv2.waitKey(5) & 0xFF == ord('q'):
+                break
+
             if breakflag:
                 counter += 1
 
