@@ -14,17 +14,17 @@ It is updated to function specifically on our custom PCB.
 
 This folder holds the code running from your laptop.
 
-The code to be run within this folder is the test3.py
+The code to be run within this folder is the mainScript.py. scriptNoGUI.py is a test script if you need to view openCV analysis being drawn onto image.
 
 **RPI**
 
 This folder holds things necessary for your RPI. 
 
-The new_IMU_handler.py is the main script for this folder. The client_sub_csv.py is a simple script that allows you to send the recieved data into a CSV file conviently to analyze some data if necessary.
+The mainScript.py is the main script for this folder. The client_sub_csv.py inside the data folder is a simple script that allows you to send the recieved data into a CSV file conviently to analyze some data if necessary.
 
-The data folder holds a few csvs for the type of data we recieve from the IMU.
+The data folder also holds a few csvs for the type of data we recieve from the IMU.
 
-The mosquitto.conf file is a configuration file for the MQTT broker on the RPI, this can just be moved into /etc/mosquitto/ and replace the standard config file.
+The mosquitto.conf file is a configuration file for the MQTT broker on the RPI, this must be moved into /etc/mosquitto/ and replace the standard config file.
 
 Some other instructions for having the mosquitto broker running is listed below.
 
@@ -43,6 +43,3 @@ For interacting with the mosquitto broker you just installed, use
 `sudo systemctl stop mosquitto.service`
 
 `sudo systemctl restart mosquitto.service `
-
-You may need to create a config file for your mosquitto service
-There is an example config file within the rpi folder
