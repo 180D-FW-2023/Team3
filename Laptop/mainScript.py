@@ -19,6 +19,7 @@ class BicepCurlApp:
 
         # Set the size of the window
         self.app.geometry("1280x800")  # Set your desired size here
+        self.app.resizable(False, False)
 
         # Initialize OpenCV video capture
         self.capture = cv2.VideoCapture(0)
