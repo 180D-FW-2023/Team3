@@ -65,7 +65,7 @@ def is_movement_detected_pushup(current_data, baseline_data):
     global pushup_Pause
     # Compare current data with baseline data to detect movement
     average_differences = abs(current_data - baseline_data)
-    threshold = 15 
+    threshold = 8 
     if (average_differences > threshold):
         if (time.time() - error_time < 1.5) and (time.time() - error_time > 0.5):
             pushup_Pause = False
@@ -168,7 +168,7 @@ def callback_esp32_Squat(client, userdata, msg):
         squat_baseline = current_data
         squat_initial = current_data
     # Check for movement
-    if pushup_Pause == True:
+    if squat_Pause == True:
         if is_movement_detected_squat(current_data, squat_baseline):
             # If there is movement, we are supposed to be in pushup pause, and there hasnt been another error
             # in past 2 seconds then add another error

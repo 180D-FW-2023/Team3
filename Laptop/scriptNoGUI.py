@@ -14,6 +14,7 @@ mpPose = mp.solutions.pose
 pose = mpPose.Pose()
 mpDraw = mp.solutions.drawing_utils
 
+sleep(3)
 # Get video directly from camera
 cap = cv2.VideoCapture(0)
 pTime = 0
@@ -60,19 +61,20 @@ def on_disconnect(client, userdata, rc):
    print("Disconnected from MQTT server")
 
 
-client = mqtt.Client("openCV client") # this should be a unique name
-flag_connected = 0
+# client = mqtt.Client("openCV client") # this should be a unique name
+# flag_connected = 0
 
-client.on_connect = on_connect
-client.on_disconnect = on_disconnect
-client.connect('192.168.99.113',1883)
-#client.connect('131.179.39.148',1883)
-# start a new thread
-client.loop_start()
-print("......client setup complete............")
+# client.on_connect = on_connect
+# client.on_disconnect = on_disconnect
+# client.connect('192.168.99.113',1883)
+# #client.connect('131.179.39.148',1883)
+# # start a new thread
+# client.loop_start()
+# print("......client setup complete............")
 
+sleep(3)
 ## Speech Recognition
-exercise_flag = 0
+exercise_flag = 8
 
 def ask_Exercise():
     global exercise_flag
@@ -148,11 +150,11 @@ def findAngle(x1, y1, x2, y2):
     return degree
 ## These will continualy prompt the user until they pass the prompts
 # Ask for excercise
-while not ask_Exercise():
-    pass
-# Ask for prompt to start the execerise program
-while not listen_for_start_command():
-    pass
+# while not ask_Exercise():
+#     pass
+# # Ask for prompt to start the execerise program
+# while not listen_for_start_command():
+#     pass
 
 
 ## Bicep Curl code
@@ -589,20 +591,24 @@ if( exercise_flag == 4):
     # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
     cooldown_start_time = time.time()
     calibration_start_time = time.time()
+    errortime = time.time()
     # This is variables to stop processing
     breakflag = False
     counter = 0
     # variables for the line
-    angle_deg = 15
+    angle_deg = 45
     angle_rad = math.radians(angle_deg)
     line_len = 700
+    Pause = False
     # This is your actual processing code
     while True:
-        if counter >= 30:
+        
+        if counter >= 31:
             client.publish("Control", "Workout Complete!")
             sleep(1)
+            
             break
-        if reps >= 10 and counter == 0:
+        if reps >= 10 and counter == 1:
             breakflag = True
         
         # Read frame
@@ -621,20 +627,17 @@ if( exercise_flag == 4):
         lmPose = mpPose.PoseLandmark
         h, w, c = img.shape
 
-        # Right shoulder
-        r_shldr_x = int(lm.landmark[lmPose.RIGHT_SHOULDER].x * w)
-        r_shldr_y = int(lm.landmark[lmPose.RIGHT_SHOULDER].y * h)
-        # right ear
-        r_ear_x = int(lm.landmark[lmPose.RIGHT_EAR].x * w)
-        r_ear_y = int(lm.landmark[lmPose.RIGHT_EAR].y * h)
         # right hip
-        r_hip_x = int(lm.landmark[lmPose.RIGHT_HIP].x * w)
-        r_hip_y = int(lm.landmark[lmPose.RIGHT_HIP].y * h)
+        l_hip_x = int(lm.landmark[lmPose.LEFT_HIP].x * w)
+        l_hip_y = int(lm.landmark[lmPose.LEFT_HIP].y * h)
         # Right knee
-        r_knee_x = int(lm.landmark[lmPose.RIGHT_KNEE].x * w)
-        r_knee_y = int(lm.landmark[lmPose.RIGHT_KNEE].y * h)
+        l_knee_x = int(lm.landmark[lmPose.LEFT_KNEE].x * w)
+        l_knee_y = int(lm.landmark[lmPose.LEFT_KNEE].y * h)
+
+        l_ankle_x = int(lm.landmark[lmPose.LEFT_ANKLE].x * w)
+        l_ankle_y = int(lm.landmark[lmPose.LEFT_ANKLE].y * h)
         
-        joints = [(r_shldr_x, r_shldr_y), (r_ear_x, r_ear_y), (r_hip_x, r_hip_y), (r_knee_x, r_knee_y)]
+        joints = [(l_hip_x, l_hip_y), (l_knee_x, l_knee_y), (l_ankle_x, l_ankle_y)]
         # Apply smoothing to the joint positions
         for joint, (joint_x, joint_y) in enumerate(joints):
             if len(prev_joint_positions) > 0:
@@ -649,10 +652,10 @@ if( exercise_flag == 4):
         # set for the next frame
         prev_joint_positions = current_joint_positions
 
-        cv2.circle(img, (r_shldr_x, r_shldr_y), 7, yellow, -1)
-        cv2.circle(img, (r_ear_x, r_ear_y), 7, yellow, -1)
-        cv2.circle(img, (r_hip_x, r_hip_y), 7, yellow, -1)
-        cv2.circle(img, (r_knee_x, r_knee_y), 7, yellow, -1)
+        
+        cv2.circle(img, (l_hip_x, l_hip_y), 7, yellow, -1)
+        cv2.circle(img, (l_knee_x, l_knee_y), 7, yellow, -1)
+        cv2.circle(img, (l_ankle_x, l_ankle_y), 7, yellow, -1)
         
         for joint_position in (current_joint_positions):
             joint_x, joint_y = joint_position
@@ -661,28 +664,40 @@ if( exercise_flag == 4):
 
         # During calibration period
         if (time.time() - calibration_start_time < 3):
-            if r_hip_x != 0:
-                calibration_joint_values_x.append(r_hip_x)
-                calibration_joint_values_y.append(r_hip_y)
+            if l_hip_x != 0:
+                calibration_joint_values_x.append(l_hip_x)
+                calibration_joint_values_y.append(l_hip_y)
         # Not calibration period
         else:
             calibrated_hip_x = np.mean(calibration_joint_values_x)
             calibrated_hip_y = np.mean(calibration_joint_values_y)
-            end_x = int(calibrated_hip_x + line_len * math.cos(angle_rad))
-            end_y = int(calibrated_hip_y - line_len * math.sin(angle_deg))
+            end_x = int(calibrated_hip_x - line_len * math.cos(angle_rad))
+            end_y = int(calibrated_hip_y - line_len * math.sin(angle_rad))
             cv2.line(img, (int(calibrated_hip_x), int(calibrated_hip_y)), (end_x, end_y), red, 2)
-            y_line_at_point = calibrated_hip_y + int((r_knee_x - calibrated_hip_x) * math.tan(angle_rad))
+            y_line_at_point = calibrated_hip_y + int((l_knee_x - calibrated_hip_x) * math.tan(angle_rad))
+            knee_inclination = findAngle(l_knee_x, l_knee_y, l_hip_x, l_hip_y)
+            ankle_inclination = findAngle(l_knee_x, l_knee_y, l_ankle_x, l_ankle_y)
 
-            # Count reps
+            if time.time() - cooldown_start_time > 1.5:
+                        Pause = False
+                # Count reps
             if time.time() - cooldown_start_time > 4: # only one rep per 4 seconds
-                if r_knee_y < y_line_at_point:
+                if l_knee_y < y_line_at_point:
                     reps += 1
+                    Pause = True
                     cooldown_start_time = time.time()
+            if Pause == True:
+                if l_knee_y > y_line_at_point:
+                    if time.time() - errortime > 1.5:
+                        errCounterX += 1
+                        errortime = time.time()
 
 
-        # Display
+        cv2.putText(img, f"Reps: {reps} ErrorsX: {errCounterX} ErrorsY: {errCounterY}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
         resized_img = cv2.resize(img, (1300, 700))
-        cv2.imshow('MediaPipe Pose', resized_img)
+        # Display the combined image with transparency
+        cv2.imshow("frame", resized_img)
+
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
 
@@ -818,6 +833,324 @@ if( exercise_flag == 5):
         fps = 1 / (cTime - pTime)
         pTime = cTime
 
+if( exercise_flag == 6):
+    blue = (255, 127, 0)
+    red = (50, 50, 255)
+    green = (127, 255, 0)
+    dark_blue = (127, 20, 0)
+    light_green = (127, 233, 100)
+    yellow = (0, 255, 255)
+    pink = (255, 0, 255)
+    # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
+    cooldown_start_time = time.time()
+    calibration_start_time = time.time()
+    # This is variables to stop processing
+    breakflag = False
+    counter = 0
+    # variables for the line
+    angle_deg = 15
+    angle_rad = math.radians(angle_deg)
+    line_len = 700
+    # This is your actual processing code
+    while True:
+        if counter >= 30:
+            client.publish("Control", "Workout Complete!")
+            sleep(1)
+            break
+        if reps >= 10 and counter == 0:
+            breakflag = True
+        
+        # Read frame
+        success, img = cap.read()
 
+        # rgb for skeleton
+        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = pose.process(imgRGB)
+
+        # Clear previous joint positions for the new frame
+        current_joint_positions = []
+
+        # Following line is the original skeleton drawing, but we dont really need the connections drawn or the points due to later code
+    
+        lm = results.pose_landmarks
+        lmPose = mpPose.PoseLandmark
+        h, w, c = img.shape
+
+        # right hip
+        r_hip_x = int(lm.landmark[lmPose.RIGHT_HIP].x * w)
+        r_hip_y = int(lm.landmark[lmPose.RIGHT_HIP].y * h)
+        # Right knee
+        r_knee_x = int(lm.landmark[lmPose.RIGHT_KNEE].x * w)
+        r_knee_y = int(lm.landmark[lmPose.RIGHT_KNEE].y * h)
+        
+        joints = [(r_hip_x, r_hip_y), (r_knee_x, r_knee_y)]
+        # Apply smoothing to the joint positions
+        for joint, (joint_x, joint_y) in enumerate(joints):
+            if len(prev_joint_positions) > 0:
+                smoothed_x = int(smoothing_factor * joint_x + (1 - smoothing_factor) * prev_joint_positions[joint][0])
+                smoothed_y = int(smoothing_factor * joint_y + (1 - smoothing_factor) * prev_joint_positions[joint][1])
+            else:
+                smoothed_x, smoothed_y = joint_x, joint_y
+            # Store the current smoothed joint positions
+            current_joint_positions.append((smoothed_x, smoothed_y))
+
+        
+        # set for the next frame
+        prev_joint_positions = current_joint_positions
+
+        cv2.circle(img, (r_hip_x, r_hip_y), 7, yellow, -1)
+        cv2.circle(img, (r_knee_x, r_knee_y), 7, yellow, -1)
+        
+        for joint_position in (current_joint_positions):
+            joint_x, joint_y = joint_position
+            cv2.circle(img, (joint_x, joint_y), 7, blue, -1)
+
+
+        # During calibration period
+        if (time.time() - calibration_start_time < 3):
+            if r_knee_y != 0:
+                calibration_joint_values_x.append(r_knee_x)
+                calibration_joint_values_y.append(r_knee_y)
+        # Not calibration period
+        else:
+            calibrated_knee_x = np.mean(calibration_joint_values_x)
+            calibrated_knee_y = np.mean(calibration_joint_values_y)
+            cv2.line(img, (0, int(calibrated_knee_y) - 50), (w, int(calibrated_knee_y) - 50), (255,0,0), 2)
+
+            if time.time() - cooldown_start_time > 4: # only one rep per 4 seconds
+                if r_hip_y > int(calibrated_knee_y - 50): # check if shoulder joint passes line
+                    print("Enter")
+                    client.publish("TurnerOpenCV", "squat pause begin")
+                    reps += 1
+                    cooldown_start_time = time.time()
+
+
+        # Display
+        cv2.putText(img, f"Reps: {reps} ErrorsX: {errCounterX} ErrorsY: {errCounterY}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
+        resized_img = cv2.resize(img, (1300, 700))
+        # Display the combined image with transparency
+        cv2.imshow("frame", resized_img)
+        if cv2.waitKey(5) & 0xFF == ord('q'):
+            break
+
+        if breakflag:
+            counter += 1
+
+if( exercise_flag == 7):
+    blue = (255, 127, 0)
+    red = (50, 50, 255)
+    green = (127, 255, 0)
+    dark_blue = (127, 20, 0)
+    light_green = (127, 233, 100)
+    yellow = (0, 255, 255)
+    pink = (255, 0, 255)
+    # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
+    cooldown_start_time = time.time()
+    calibration_start_time = time.time()
+    # This is variables to stop processing
+    breakflag = False
+    counter = 0
+    # This is your actual processing code
+    while True:
+        if counter >= 31:
+            client.publish("Control", "Workout Complete!")
+            sleep(1)
+            break
+        if reps >= 10 and counter == 0:
+            breakflag = True
+    
+        # Read frame
+        success, img = cap.read()
+
+        # rgb for skeleton
+        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = pose.process(imgRGB)
+
+        # Clear previous joint positions for the new frame
+        current_joint_positions = []
+
+        # Following line is the original skeleton drawing, but we dont really need the connections drawn or the points due to later code
+    
+        lm = results.pose_landmarks
+        lmPose = mpPose.PoseLandmark
+        h, w, c = img.shape
+
+        # Right shoulder
+        r_shldr_x = int(lm.landmark[lmPose.RIGHT_SHOULDER].x * w)
+        r_shldr_y = int(lm.landmark[lmPose.RIGHT_SHOULDER].y * h)
+
+        # Right elbow
+        r_elbow_x = int(lm.landmark[lmPose.RIGHT_ELBOW].x * w)
+        r_elbow_y = int(lm.landmark[lmPose.RIGHT_ELBOW].y * h)
+        
+        joints = [(r_shldr_x, r_shldr_y), (r_elbow_x, r_elbow_y)]
+        # Apply smoothing to the joint positions
+        for joint, (joint_x, joint_y) in enumerate(joints):
+            if len(prev_joint_positions) > 0:
+                smoothed_x = int(smoothing_factor * joint_x + (1 - smoothing_factor) * prev_joint_positions[joint][0])
+                smoothed_y = int(smoothing_factor * joint_y + (1 - smoothing_factor) * prev_joint_positions[joint][1])
+            else:
+                smoothed_x, smoothed_y = joint_x, joint_y
+            # Store the current smoothed joint positions
+            current_joint_positions.append((smoothed_x, smoothed_y))
+
+        
+        # set for the next frame
+        prev_joint_positions = current_joint_positions
+        cv2.circle(img, (r_shldr_x, r_shldr_y), 7, yellow, -1)
+        cv2.circle(img, (r_elbow_x, r_elbow_y), 7, yellow, -1)
+        
+        for joint_position in (current_joint_positions):
+            joint_x, joint_y = joint_position
+            cv2.circle(img, (joint_x, joint_y), 7, blue, -1)
+
+
+        # During calibration period
+        if (time.time() - calibration_start_time < 3):
+            if r_elbow_y != 0:
+                calibration_joint_values_x.append(r_elbow_x)
+                calibration_joint_values_y.append(r_elbow_y)
+        # Not calibration period
+        else:
+            calibrated_elbow_x = np.mean(calibration_joint_values_x)
+            calibrated_elbow_y = np.mean(calibration_joint_values_y)
+            cv2.line(img, (0, int(calibrated_elbow_y) - 20), (w, int(calibrated_elbow_y) - 20), (255,0,0), 2)
+
+            if time.time() - cooldown_start_time > 1.5:
+                    Pause = False
+            if time.time() - cooldown_start_time > 4: # only one rep per 4 seconds
+                if r_shldr_y > int(calibrated_elbow_y - 20): # check if shoulder joint passes line
+                    client.publish("TurnerOpenCV", "pushup pause begin")
+                    Pause = True
+                    reps += 1
+                    cooldown_start_time = time.time()
+
+        cv2.putText(img, f"Reps: {reps} ErrorsX: {errCounterX} ErrorsY: {errCounterY}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
+        resized_img = cv2.resize(img, (1300, 700))
+        # Display the combined image with transparency
+        cv2.imshow("frame", resized_img)
+
+        if cv2.waitKey(5) & 0xFF == ord('q'):
+            break
+
+        if breakflag:
+            counter += 1
+
+if( exercise_flag == 8):
+    blue = (255, 127, 0)
+    red = (50, 50, 255)
+    green = (127, 255, 0)
+    dark_blue = (127, 20, 0)
+    light_green = (127, 233, 100)
+    yellow = (0, 255, 255)
+    pink = (255, 0, 255)
+    # Set all time relevant values after we recieve the start command so that these dont begin at the wrong time and mess everything up
+    cooldown_start_time = time.time()
+    calibration_start_time = time.time()
+    cooldown_start_time_err = time.time()
+    # This is variables to stop processing
+    breakflag = False
+    counter = 0
+    # This is your actual processing code
+    while True:
+        if counter >= 31:
+            client.publish("Control", "Workout Complete!")
+            sleep(1)
+            break
+        if reps >= 10 and counter == 0:
+            breakflag = True
+    
+        # Read frame
+        success, img = cap.read()
+
+        # rgb for skeleton
+        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = pose.process(imgRGB)
+
+        # Clear previous joint positions for the new frame
+        current_joint_positions = []
+
+        # Following line is the original skeleton drawing, but we dont really need the connections drawn or the points due to later code
+    
+        lm = results.pose_landmarks
+        lmPose = mpPose.PoseLandmark
+        h, w, c = img.shape
+
+        # Right shoulder
+        r_shldr_x = int(lm.landmark[lmPose.RIGHT_SHOULDER].x * w)
+        r_shldr_y = int(lm.landmark[lmPose.RIGHT_SHOULDER].y * h)
+
+        # Right elbow
+        r_elbow_x = int(lm.landmark[lmPose.RIGHT_ELBOW].x * w)
+        r_elbow_y = int(lm.landmark[lmPose.RIGHT_ELBOW].y * h)
+
+        # Right wrist
+        r_wrist_x = int(lm.landmark[lmPose.RIGHT_WRIST].x * w)
+        r_wrist_y = int(lm.landmark[lmPose.RIGHT_WRIST].y * h)
+        
+        joints = [(r_shldr_x, r_shldr_y), (r_elbow_x, r_elbow_y), (r_wrist_x, r_wrist_y)]
+        # Apply smoothing to the joint positions
+        for joint, (joint_x, joint_y) in enumerate(joints):
+            if len(prev_joint_positions) > 0:
+                smoothed_x = int(smoothing_factor * joint_x + (1 - smoothing_factor) * prev_joint_positions[joint][0])
+                smoothed_y = int(smoothing_factor * joint_y + (1 - smoothing_factor) * prev_joint_positions[joint][1])
+            else:
+                smoothed_x, smoothed_y = joint_x, joint_y
+            # Store the current smoothed joint positions
+            current_joint_positions.append((smoothed_x, smoothed_y))
+
+        
+        # set for the next frame
+        prev_joint_positions = current_joint_positions
+        cv2.circle(img, (r_shldr_x, r_shldr_y), 7, yellow, -1)
+        cv2.circle(img, (r_elbow_x, r_elbow_y), 7, yellow, -1)
+        cv2.circle(img, (r_wrist_x, r_wrist_y), 7, yellow, -1)
+        
+        for joint_position in (current_joint_positions):
+            joint_x, joint_y = joint_position
+            cv2.circle(img, (joint_x, joint_y), 7, blue, -1)
+
+
+        # During calibration period
+        if (time.time() - calibration_start_time < 3):
+            if r_elbow_y != 0:
+                calibration_joint_values_x.append(r_elbow_x)
+                calibration_joint_values_y.append(r_elbow_y)
+        # Not calibration period
+        else:
+            calibrated_elbow_x = np.mean(calibration_joint_values_x)
+            calibrated_elbow_y = np.mean(calibration_joint_values_y)
+            box_x = int(calibrated_elbow_x - 50)
+            box_y = int(calibrated_elbow_y - 75)
+            cv2.rectangle(img, (box_x, box_y), (box_x + 100, box_y + 150), (255, 255, 255), 2)
+            cv2.line(img, (0, int(calibrated_elbow_y) - 20), (w, int(calibrated_elbow_y) - 20), (255,0,0), 2)
+
+            if time.time() - cooldown_start_time > cooldown_period:
+                if r_wrist_y > int(calibrated_elbow_y) - 20:
+                    reps += 1
+                    cooldown_start_time = time.time()
+            if time.time() - cooldown_start_time_err > cooldown_period:
+                # Check for movement of our desired joint
+                if (r_elbow_x > calibrated_elbow_x + 50) or (r_elbow_x < calibrated_elbow_x - 50):
+                    errCounterX += 1
+                    data_to_publish = "Error from X position"
+                    client.publish("TurnerOpenCV", data_to_publish)
+                    cooldown_start_time_err = time.time()
+                if (r_elbow_y > calibrated_elbow_y + 75) or (r_elbow_y < calibrated_elbow_y - 75):
+                    errCounterY += 1
+                    data_to_publish = "Error from Y position"
+                    client.publish("TurnerOpenCV", data_to_publish)
+                    cooldown_start_time_err = time.time()
+
+        cv2.putText(img, f"Reps: {reps} ErrorsX: {errCounterX} ErrorsY: {errCounterY}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
+        resized_img = cv2.resize(img, (1300, 700))
+        # Display the combined image with transparency
+        cv2.imshow("frame", resized_img)
+
+        if cv2.waitKey(5) & 0xFF == ord('q'):
+            break
+
+        if breakflag:
+            counter += 1
 cap.release()
 cv2.destroyAllWindows()
