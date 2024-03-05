@@ -11,6 +11,23 @@ import math
 import customtkinter as ctk
 import threading
 from PIL import Image, ImageTk
+import signal
+
+# Define a signal handler function
+def signal_handler(sig, frame):
+    print("Exiting the program...\n")
+    bicep_curl_app.workout_complete_event.set()
+    # Perform cleanup tasks here
+    cap.release()  # Release the webcam
+    cv2.destroyAllWindows()  # Close all OpenCV windows
+    client.disconnect()  # Disconnect from MQTT server
+    client.loop_stop()  # Stop the MQTT client loop
+    exit(0)
+
+# Register the signal handler for SIGINT (Ctrl+C)
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGABRT, signal_handler)
+
 
 class BicepCurlApp:
     def __init__(self, app):
