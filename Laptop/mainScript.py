@@ -113,8 +113,8 @@ class BicepCurlApp:
 
     def update_frame(self):
         if self.workout_complete_event.is_set():
-            pass
-            #self.app.quit()  # Terminate the main loop
+            self.btn_pause.configure(text="Done!", fg_color="blue")
+            self.app.after(5000, self.quit_app)  # Call quit_app after 5000 milliseconds
         # Read a frame from the video capture
         ret, frame = self.capture.read()
         if ret:
@@ -136,32 +136,35 @@ class BicepCurlApp:
         # Find time the code has been running
         elapsed = time.time() - code_start
         # Update the labels
-        if(exercise_flag == 1 or exercise_flag == 2 or exercise_flag == 3 or exercise_flag == 4):
-            self.lbl_rep.configure(text=f"Reps:\n {reps}")
-            self.lbl_error.configure(text=f"Errors:\n {errors}")
-            self.lbl_time.configure(text=f"Time:\n {int(elapsed)}")
+        if not self.workout_complete_event.is_set():
+            if(exercise_flag == 1 or exercise_flag == 2 or exercise_flag == 3 or exercise_flag == 4):
+                self.lbl_rep.configure(text=f"Reps:\n {reps}")
+                self.lbl_error.configure(text=f"Errors:\n {errors}")
+                self.lbl_time.configure(text=f"Time:\n {int(elapsed)}")
 
-        else:
-            self.lbl_goodtime.configure(text=f"Time\nProper Form:\n {(good_time)}")
-            self.lbl_badtime.configure(text=f"Time\nImproper Form:\n {(bad_time)}")
+            else:
+                self.lbl_goodtime.configure(text=f"Time\nProper Form:\n {(good_time)}")
+                self.lbl_badtime.configure(text=f"Time\nImproper Form:\n {(bad_time)}")
 
-        if Pause:
-            btn_text = "PAUSE"
-            btn_fg_color = "red"
-        else:
-            btn_text = "GO"
-            btn_fg_color = "green"
+            if Pause:
+                btn_text = "PAUSE"
+                btn_fg_color = "red"
+            else:
+                btn_text = "GO"
+                btn_fg_color = "green"
 
-        if self.btn_pause.cget("text") != btn_text:
-            self.btn_pause.configure(text=btn_text)
-        if self.btn_pause.cget("fg_color") != btn_fg_color:
-            self.btn_pause.configure(fg_color=btn_fg_color)
+            if self.btn_pause.cget("text") != btn_text:
+                self.btn_pause.configure(text=btn_text)
+            if self.btn_pause.cget("fg_color") != btn_fg_color:
+                self.btn_pause.configure(fg_color=btn_fg_color)
         # Schedule the next frame update after a delay (in milliseconds)
         self.app.after(10, self.update_frame)
 
     def run(self):
         # Start the GUI main loop
         self.app.mainloop()
+    def quit_app(self):
+        self.app.quit()
 
 def my_code(workout_complete_event):
     global Pause, good_time, bad_time, errors, prev_joint_positions, smoothing_factor, calibration_pabove_values, calibration_period, reps, errCounterX, errCounterY, errPause, cooldown_period,  calibration_joint_values_x,calibration_joint_values_y, desiredJoint,  Joint_x, Joint_y, Shoulder_x, Shoulder_y,hip_x,hip_y, pTime
@@ -259,7 +262,7 @@ def my_code(workout_complete_event):
                 cv2.line(img, (0, int(calibrated_elbow_y) - 20), (w, int(calibrated_elbow_y) - 20), (255,0,0), 2)
 
                 if time.time() - cooldown_start_time > cooldown_period:
-                    if r_wrist_y > int(calibrated_elbow_y) - 20:
+                    if r_wrist_y < int(calibrated_elbow_y) - 20:
                         reps += 1
                         cooldown_start_time = time.time()
                 if time.time() - cooldown_start_time_err > cooldown_period:
