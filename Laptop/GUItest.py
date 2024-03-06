@@ -17,9 +17,10 @@ start_time = time.time()
 
 def update_frame():
     ret, frame = cap.read()
+    resized_img = cv2.resize(frame, (400, 300))
     if ret:
         # convert to image
-        cv_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        cv_img = cv2.cvtColor(resized_img, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(cv_img)
         img_tk = ImageTk.PhotoImage(image=img)
 
@@ -50,7 +51,7 @@ lbl_video = ctk.CTkLabel(app)
 lbl_video.pack(padx=10, pady=10)
 
 # labels for rep count, error count, and time elapsed
-lbl_rep = ctk.CTkLabel(app, text="Rep Count: 0")
+lbl_rep = ctk.CTkLabel(app, text="Rep Count: 0", font=("Arial", 25))
 lbl_rep.pack()
 lbl_error = ctk.CTkLabel(app, text="Error Count: 0")
 lbl_error.pack()
