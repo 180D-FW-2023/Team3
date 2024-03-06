@@ -39,7 +39,7 @@ class BicepCurlApp:
         self.app.resizable(False, False)
 
         # Initialize OpenCV video capture
-        self.capture = cv2.VideoCapture(0)
+        self.capture = cv2.VideoCapture(1)
 
         self.old_good_time = 0
         self.old_bad_time = 0
@@ -752,7 +752,7 @@ pose = mpPose.Pose()
 mpDraw = mp.solutions.drawing_utils
 
 # Get video directly from camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 pTime = 0
 
 ## Initialize variables used for OpenCV
