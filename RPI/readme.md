@@ -9,4 +9,4 @@ errors.
 There is also the mosquitto.conf file. This file belongs in /etc/mosquitto/ and enables the type of broker we want the RPI to be running.
 There are more detailed instructions for setting up the broker in the user manual.
 
-There is also a small data folder that holds CSV files that display the type of data the RPI is recieving from the IMU/ESP32.
+There is also a small data folder that holds CSV files that display the type of data the RPI is recieving from the IMU/ESP32, and outputs from runs of the final iteration of the project.
